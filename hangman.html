@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hangman Game</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #f43f5e;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #020617, #1e293b);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .game {
+      width: min(900px, 100%);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 14px;
+      padding: 24px;
+      display: grid;
+      gap: 20px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 760px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hangman-box {
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 10px;
+      padding: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .word {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      min-height: 58px;
+      margin-bottom: 14px;
+    }
+
+    .letter-slot {
+      width: 34px;
+      border-bottom: 3px solid var(--accent);
+      text-align: center;
+      font-size: 1.45rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      line-height: 1.6;
+    }
+
+    .status {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 10px;
+      min-height: 24px;
+    }
+
+    .status strong {
+      color: var(--text);
+    }
+
+    .message {
+      text-align: center;
+      min-height: 24px;
+      font-weight: 700;
+    }
+
+    .message.win { color: var(--success); }
+    .message.lose { color: var(--danger); }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .keyboard {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    @media (max-width: 560px) {
+      .keyboard {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+    }
+
+    button.key {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: #0f172a;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 0;
+      cursor: pointer;
+      font-weight: 700;
+      text-transform: uppercase;
+      transition: transform 0.06s ease, background 0.2s ease;
+    }
+
+    button.key:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    button.key:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    button.key:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .restart {
+      align-self: center;
+      background: var(--accent);
+      color: #062033;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .part {
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .part.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <h1>Hangman Game</h1>
+    <div class="layout">
+      <section class="hangman-box" aria-label="Hangman drawing">
+        <svg viewBox="0 0 160 200" role="img" aria-label="Hangman illustration">
+          <line x1="20" y1="180" x2="140" y2="180" stroke="#94a3b8" stroke-width="4"></line>
+          <line x1="40" y1="180" x2="40" y2="20" stroke="#94a3b8" stroke-width="4"></line>
+          <line x1="40" y1="20" x2="100" y2="20" stroke="#94a3b8" stroke-width="4"></line>
+          <line x1="100" y1="20" x2="100" y2="38" stroke="#94a3b8" stroke-width="4"></line>
+
+          <circle class="part" id="head" cx="100" cy="54" r="16" fill="none" stroke="#e2e8f0" stroke-width="4"></circle>
+          <line class="part" id="body" x1="100" y1="70" x2="100" y2="118" stroke="#e2e8f0" stroke-width="4"></line>
+          <line class="part" id="leftArm" x1="100" y1="86" x2="76" y2="104" stroke="#e2e8f0" stroke-width="4"></line>
+          <line class="part" id="rightArm" x1="100" y1="86" x2="124" y2="104" stroke="#e2e8f0" stroke-width="4"></line>
+          <line class="part" id="leftLeg" x1="100" y1="118" x2="78" y2="148" stroke="#e2e8f0" stroke-width="4"></line>
+          <line class="part" id="rightLeg" x1="100" y1="118" x2="122" y2="148" stroke="#e2e8f0" stroke-width="4"></line>
+        </svg>
+      </section>
+
+      <section class="controls">
+        <div class="word" id="word"></div>
+        <p class="status" id="status"></p>
+        <p class="message" id="message"></p>
+        <div class="keyboard" id="keyboard" aria-label="Letter keyboard"></div>
+        <button class="restart" id="restartBtn">New Word</button>
+        <p class="hint">Tip: You can type letters using your keyboard.</p>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const words = [
+      "javascript", "computer", "developer", "browser", "function", "variable",
+      "network", "keyboard", "hangman", "frontend", "backend", "database"
+    ];
+
+    const maxMistakes = 6;
+    const partOrder = ["head", "body", "leftArm", "rightArm", "leftLeg", "rightLeg"];
+
+    let selectedWord = "";
+    let guessed = new Set();
+    let mistakes = 0;
+    let gameOver = false;
+
+    const wordEl = document.getElementById("word");
+    const statusEl = document.getElementById("status");
+    const messageEl = document.getElementById("message");
+    const keyboardEl = document.getElementById("keyboard");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function pickWord() {
+      return words[Math.floor(Math.random() * words.length)];
+    }
+
+    function createKeyboard() {
+      keyboardEl.innerHTML = "";
+      for (let i = 65; i <= 90; i += 1) {
+        const letter = String.fromCharCode(i).toLowerCase();
+        const btn = document.createElement("button");
+        btn.className = "key";
+        btn.textContent = letter;
+        btn.setAttribute("data-letter", letter);
+        btn.addEventListener("click", () => handleGuess(letter));
+        keyboardEl.appendChild(btn);
+      }
+    }
+
+    function renderWord() {
+      wordEl.innerHTML = "";
+      for (const ch of selectedWord) {
+        const slot = document.createElement("span");
+        slot.className = "letter-slot";
+        slot.textContent = guessed.has(ch) ? ch : "";
+        wordEl.appendChild(slot);
+      }
+    }
+
+    function updateStatus() {
+      statusEl.innerHTML = `Wrong guesses: <strong>${mistakes}</strong> / <strong>${maxMistakes}</strong>`;
+    }
+
+    function updateHangman() {
+      partOrder.forEach((id, idx) => {
+        const part = document.getElementById(id);
+        part.classList.toggle("visible", idx < mistakes);
+      });
+    }
+
+    function disableKeyboard(disabled) {
+      const keys = keyboardEl.querySelectorAll("button");
+      keys.forEach((btn) => {
+        btn.disabled = disabled;
+      });
+    }
+
+    function disableUsedLetter(letter) {
+      const btn = keyboardEl.querySelector(`[data-letter="${letter}"]`);
+      if (btn) btn.disabled = true;
+    }
+
+    function checkGameState() {
+      const won = [...selectedWord].every((ch) => guessed.has(ch));
+      if (won) {
+        gameOver = true;
+        messageEl.textContent = "You won! Great job!";
+        messageEl.className = "message win";
+        disableKeyboard(true);
+        return;
+      }
+
+      if (mistakes >= maxMistakes) {
+        gameOver = true;
+        messageEl.textContent = `You lost! The word was "${selectedWord}".`;
+        messageEl.className = "message lose";
+        disableKeyboard(true);
+      }
+    }
+
+    function handleGuess(letter) {
+      if (gameOver || guessed.has(letter)) return;
+
+      guessed.add(letter);
+      disableUsedLetter(letter);
+
+      if (!selectedWord.includes(letter)) {
+        mistakes += 1;
+      }
+
+      renderWord();
+      updateStatus();
+      updateHangman();
+      checkGameState();
+    }
+
+    function startGame() {
+      selectedWord = pickWord();
+      guessed = new Set();
+      mistakes = 0;
+      gameOver = false;
+      messageEl.textContent = "";
+      messageEl.className = "message";
+      createKeyboard();
+      renderWord();
+      updateStatus();
+      updateHangman();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const letter = event.key.toLowerCase();
+      if (/^[a-z]$/.test(letter)) {
+        handleGuess(letter);
+      }
+    });
+
+    restartBtn.addEventListener("click", startGame);
+    startGame();
+  </script>
+</body>
+</html>
