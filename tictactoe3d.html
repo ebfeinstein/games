@@ -327,27 +327,18 @@ function checkWin(b) {
 // ── AI (heuristic) ────────────────────────────────────────────────────────────
 
 function aiMove() {
-  // 30% of the time just pick a random empty cell
-  if (Math.random() < 0.3) {
-    const empty = board.reduce((acc, v, i) => v ? acc : [...acc, i], []);
-    commitMove(empty[Math.floor(Math.random() * empty.length)]);
-    return;
-  }
-
-  // Win immediately if possible (only attempted 50% of the time)
-  if (Math.random() < 0.5) {
-    for (let i = 0; i < CELLS; i++) {
-      if (!board[i]) {
-        board[i] = 'O';
-        const w = checkWin(board);
-        board[i] = null;
-        if (w) { commitMove(i); return; }
-      }
+  // 1. Always take a winning move
+  for (let i = 0; i < CELLS; i++) {
+    if (!board[i]) {
+      board[i] = 'O';
+      const w = checkWin(board);
+      board[i] = null;
+      if (w) { commitMove(i); return; }
     }
   }
 
-  // Block player win only 25% of the time
-  if (Math.random() < 0.25) {
+  // 2. Almost always block the player (90% of the time)
+  if (Math.random() < 0.9) {
     for (let i = 0; i < CELLS; i++) {
       if (!board[i]) {
         board[i] = 'X';
@@ -358,7 +349,7 @@ function aiMove() {
     }
   }
 
-  // Pick a cell using heuristic scores drowned out by heavy random noise
+  // 3. Strong heuristic scoring with light noise
   const cellScore = Array(CELLS).fill(0);
   for (const line of LINES) {
     const vals = line.map(i => board[i]);
@@ -367,17 +358,26 @@ function aiMove() {
     if (xc > 0 && oc > 0) continue;
     for (const i of line) {
       if (!board[i]) {
-        if      (oc === 2) cellScore[i] += 10;
-        else if (xc === 2) cellScore[i] += 6;
-        else if (oc === 1) cellScore[i] += 2;
+        if      (oc === 3) cellScore[i] += 10000;
+        else if (xc === 3) cellScore[i] += 5000;
+        else if (oc === 2) cellScore[i] += 100;
+        else if (xc === 2) cellScore[i] += 60;
+        else if (oc === 1) cellScore[i] += 10;
+        else if (xc === 1) cellScore[i] += 5;
         else               cellScore[i] += 1;
       }
     }
   }
 
-  // Heavy noise overwhelms strategy most of the time
+  // Prefer strong positions
+  const inner = [21,22,25,26,37,38,41,42];
+  const corners = [0,3,12,15,48,51,60,63];
+  for (const i of inner)   if (!board[i]) cellScore[i] += 8;
+  for (const i of corners) if (!board[i]) cellScore[i] += 4;
+
+  // Small noise so it's not perfectly deterministic
   for (let i = 0; i < CELLS; i++) {
-    if (!board[i]) cellScore[i] += Math.random() * 100;
+    if (!board[i]) cellScore[i] += Math.random() * 5;
   }
 
   let best = -1, bestS = -Infinity;
