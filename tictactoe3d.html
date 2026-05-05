@@ -327,18 +327,27 @@ function checkWin(b) {
 // ── AI (heuristic) ────────────────────────────────────────────────────────────
 
 function aiMove() {
-  // 1. Win immediately if possible
-  for (let i = 0; i < CELLS; i++) {
-    if (!board[i]) {
-      board[i] = 'O';
-      const w = checkWin(board);
-      board[i] = null;
-      if (w) { commitMove(i); return; }
+  // 30% of the time just pick a random empty cell
+  if (Math.random() < 0.3) {
+    const empty = board.reduce((acc, v, i) => v ? acc : [...acc, i], []);
+    commitMove(empty[Math.floor(Math.random() * empty.length)]);
+    return;
+  }
+
+  // Win immediately if possible (only attempted 50% of the time)
+  if (Math.random() < 0.5) {
+    for (let i = 0; i < CELLS; i++) {
+      if (!board[i]) {
+        board[i] = 'O';
+        const w = checkWin(board);
+        board[i] = null;
+        if (w) { commitMove(i); return; }
+      }
     }
   }
 
-  // 2. Block immediate player win (skipped ~40% of the time)
-  if (Math.random() > 0.4) {
+  // Block player win only 25% of the time
+  if (Math.random() < 0.25) {
     for (let i = 0; i < CELLS; i++) {
       if (!board[i]) {
         board[i] = 'X';
@@ -349,7 +358,7 @@ function aiMove() {
     }
   }
 
-  // 3. Score each empty cell with random noise to avoid always playing optimally
+  // Pick a cell using heuristic scores drowned out by heavy random noise
   const cellScore = Array(CELLS).fill(0);
   for (const line of LINES) {
     const vals = line.map(i => board[i]);
@@ -358,20 +367,17 @@ function aiMove() {
     if (xc > 0 && oc > 0) continue;
     for (const i of line) {
       if (!board[i]) {
-        if      (oc === 3) cellScore[i] += 10000;
-        else if (xc === 3) cellScore[i] += 5000;
-        else if (oc === 2) cellScore[i] += 100;
-        else if (xc === 2) cellScore[i] += 60;
-        else if (oc === 1) cellScore[i] += 10;
-        else if (xc === 1) cellScore[i] += 5;
+        if      (oc === 2) cellScore[i] += 10;
+        else if (xc === 2) cellScore[i] += 6;
+        else if (oc === 1) cellScore[i] += 2;
         else               cellScore[i] += 1;
       }
     }
   }
 
-  // Add noise so the AI doesn't always pick the objectively best cell
+  // Heavy noise overwhelms strategy most of the time
   for (let i = 0; i < CELLS; i++) {
-    if (!board[i]) cellScore[i] += Math.random() * 40;
+    if (!board[i]) cellScore[i] += Math.random() * 100;
   }
 
   let best = -1, bestS = -Infinity;
