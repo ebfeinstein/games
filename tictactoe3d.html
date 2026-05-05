@@ -337,26 +337,28 @@ function aiMove() {
     }
   }
 
-  // 2. Block immediate player win
-  for (let i = 0; i < CELLS; i++) {
-    if (!board[i]) {
-      board[i] = 'X';
-      const w = checkWin(board);
-      board[i] = null;
-      if (w) { commitMove(i); return; }
+  // 2. Block immediate player win (skipped ~40% of the time)
+  if (Math.random() > 0.4) {
+    for (let i = 0; i < CELLS; i++) {
+      if (!board[i]) {
+        board[i] = 'X';
+        const w = checkWin(board);
+        board[i] = null;
+        if (w) { commitMove(i); return; }
+      }
     }
   }
 
-  // 3. Score each empty cell: favour lines already containing own pieces
+  // 3. Score each empty cell with random noise to avoid always playing optimally
   const cellScore = Array(CELLS).fill(0);
   for (const line of LINES) {
     const vals = line.map(i => board[i]);
     const xc = vals.filter(v => v === 'X').length;
     const oc = vals.filter(v => v === 'O').length;
-    if (xc > 0 && oc > 0) continue; // blocked line, skip
+    if (xc > 0 && oc > 0) continue;
     for (const i of line) {
       if (!board[i]) {
-        if      (oc === 3) cellScore[i] += 10000; // handled above but safety net
+        if      (oc === 3) cellScore[i] += 10000;
         else if (xc === 3) cellScore[i] += 5000;
         else if (oc === 2) cellScore[i] += 100;
         else if (xc === 2) cellScore[i] += 60;
@@ -367,11 +369,10 @@ function aiMove() {
     }
   }
 
-  // Tiebreak: prefer inner cells (l,r,c ∈ {1,2}) then corners
-  const inner = [21,22,25,26,37,38,41,42];
-  const corners = [0,3,12,15,48,51,60,63];
-  for (const i of inner)   if (!board[i]) cellScore[i] += 0.6;
-  for (const i of corners) if (!board[i]) cellScore[i] += 0.3;
+  // Add noise so the AI doesn't always pick the objectively best cell
+  for (let i = 0; i < CELLS; i++) {
+    if (!board[i]) cellScore[i] += Math.random() * 40;
+  }
 
   let best = -1, bestS = -Infinity;
   for (let i = 0; i < CELLS; i++) {
