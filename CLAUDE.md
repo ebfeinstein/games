@@ -20,7 +20,7 @@ Each game is structured as a single `.html` file with three inline sections: CSS
 
 **tictactoe.html** — `WINS` is a hardcoded array of all 8 winning index combos on a flat 9-element board array. vs-Computer mode uses a full minimax AI (unbeatable). `scores` object persists across `init()` calls within a session.
 
-**tictactoe3d.html** — 4×4×4 board stored as a flat 64-element array; `cell(l,r,c)` converts layer/row/col to index. 76 winning lines are generated once at load time from 13 direction vectors. vs-AI uses a heuristic scorer (not minimax — too expensive for 64 cells) with win/block-immediate checks first, then line scoring, then inner-cell preference.
+**tictactoe3d.html** — 4×4×4 board stored as a flat 64-element array; `cell(l,r,c)` converts layer/row/col to index. 76 winning lines are generated once at load time from 13 direction vectors. vs-AI uses a heuristic scorer (not minimax — too expensive for 64 cells). AI difficulty is intentionally tuned so the player wins ~75% of the time: 30% random moves, win check skipped 50% of the time, block check skipped 75% of the time, heavy random noise (`Math.random() * 100`) added to cell scores.
 
 ## Style conventions
 
